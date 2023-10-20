@@ -25,12 +25,10 @@ export class HuffmanTree {
     static buildTree(minHeap: FastPriorityQueue<HuffmanTree>): Map<string, string> | null{
         let firstNode, secondNode, thirdNode = null;
         const lookupTable = new Map<string, string>();
-        let index=0;
         while(minHeap.size>1){
-            index+=1;
             firstNode = minHeap.poll()!;
             secondNode = minHeap.poll()!;
-            thirdNode = new HuffmanTree(null, secondNode ? firstNode.weight() + secondNode.weight(): firstNode.weight(), firstNode.root, !secondNode ? null :secondNode.root)
+            thirdNode = new HuffmanTree(null, firstNode.weight() + secondNode.weight(), firstNode.root, secondNode.root)
             minHeap.add(thirdNode);
         }
 
