@@ -1,22 +1,44 @@
 import * as fs from 'node:fs';
+import { HuffmanTree } from './HuffmanTree';
+import FastPriorityQueue from 'fastpriorityqueue';
 
 export class Compressor {
     private fileName: string;
-    private stream: fs.ReadStream;
+    private lookupTable: Map<string, string> | null = null
 
     constructor(file: string){
         this.fileName = file;
-        this.stream  = fs.createReadStream(process.cwd() + `/data/${this.fileName}`);
-        console.log(this.stream)
     }
-    public compress(): void{
+
+    public process(): this{
         const map = new Map();
-        this.stream.on("data", (chunk)=>{
+        const stream  = fs.createReadStream(process.cwd() + `/data/${this.fileName}`);
+        stream.on("data", (chunk)=>{
             this.countCharacters(chunk.toString(), map);
         })
-        this.stream.on("close", ()=>{
-            this.printCharacterCount(map);
+        stream.on("close", ()=>{
+            this.initialiseHuffmanTree(map);
         })
+
+        return this;
+    }
+
+    private initialiseHuffmanTree(map: Map<string, number>){
+        const minPriorityQueue = new FastPriorityQueue((node1: HuffmanTree, node2: HuffmanTree)=>{
+            let weight1 = node1.weight();
+            let weight2 = node2.weight();
+
+            return weight1 < weight2;
+        })
+        for(let [key, value] of map.entries()){
+            const leafNode = HuffmanTree.buildLeafNode(key, value);
+            minPriorityQueue.add(leafNode);
+        }
+        this.lookupTable = HuffmanTree.buildTree(minPriorityQueue);
+
+        for(let [key,value] of this.lookupTable?.entries()!){
+            console.log(`${key}:`, value)
+        }
     }
 
     private countCharacters(chunk: string, map: Map<string, number>){
@@ -27,12 +49,6 @@ export class Compressor {
             }else{
                 map.set(character, 1);
             }
-        }
-    }
-
-    private printCharacterCount(map: Map<string, number>){
-        for(let [key, value] of map.entries()){
-            console.log(`${key} :=`, value);
         }
     }
 

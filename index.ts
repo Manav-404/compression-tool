@@ -15,8 +15,9 @@ async function commandInput(): Promise<void>{
     }
     if(file){
         try {
-            const compressor = new Compressor(file);
-            compressor.compress();
+            const compressor = new Compressor(file).process()
+            return;
+            
         } catch (error) {
             throw new Error("Cannot open the file, please check if file exists.")
         }
