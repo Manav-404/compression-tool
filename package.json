@@ -1,0 +1,22 @@
+{
+  "name": "compression_tool",
+  "version": "1.0.0",
+  "description": "A node.js based compression tool using huffman encoding",
+  "main": "index.js",
+  "scripts": {
+    "server": "ts-node-dev --poll index.ts",
+    "test": ""
+  },
+  "keywords": [
+    "huffman",
+    "encoding",
+    "compression"
+  ],
+  "author": "Manav Desai",
+  "license": "ISC",
+  "dependencies": {
+    "@datastructures-js/priority-queue": "^6.3.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.2.2"
+  }
+}
