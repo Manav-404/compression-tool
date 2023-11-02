@@ -3,29 +3,42 @@ import { HuffmanTree } from './HuffmanTree';
 import FastPriorityQueue from 'fastpriorityqueue';
 
 export class Compressor {
-    private fileName: string;
+    private static compressor: Compressor | null = null
     private lookupTable: Map<string, string> | null = null
 
-    constructor(file: string){
-        this.fileName = file;
+    private constructor(){
     }
 
-    public process(): this{
+    public static getInstance(): Compressor{
+        if(this.compressor===null){
+            return new Compressor();
+        }
+        return this.compressor;
+    }
+
+    public process(inputFile: string, outputFile: string): this{
         const map = new Map();
-        const stream  = fs.createReadStream(process.cwd() + `/data/${this.fileName}`);
+        if(!fs.existsSync(inputFile) || !fs.existsSync(outputFile)){
+            console.error("File path for input or output file doesn't exist.")
+        }
+        const stream  = fs.createReadStream(inputFile);
         let text = '';
         stream.on("data", (chunk)=>{
             text+=chunk
             this.countCharacters(chunk.toString(), map);
         })
         stream.on("close", ()=>{
-            this.initialiseHuffmanTree(map, text);
+            this.initialiseHuffmanTree(map, text, outputFile);
         })
 
         return this;
     }
 
-    private initialiseHuffmanTree(map: Map<string, number>, text: string){
+    public decompress(): void{
+        
+    }
+
+    private initialiseHuffmanTree(map: Map<string, number>, text: string, outputFile: string){
         const minPriorityQueue = new FastPriorityQueue((node1: HuffmanTree, node2: HuffmanTree)=>{
             let weight1 = node1.weight();
             let weight2 = node2.weight();
@@ -37,7 +50,7 @@ export class Compressor {
             minPriorityQueue.add(leafNode);
         }
         this.lookupTable = HuffmanTree.buildTree(minPriorityQueue);
-        this.compressAndWrite(this.lookupTable, text);
+        this.compressAndWrite(this.lookupTable, text, outputFile);
 
     }
 
@@ -48,19 +61,21 @@ export class Compressor {
         }
     }
 
-    private compressAndWrite(lookupTable: Map<string, string>| null, text:string){
+    private compressAndWrite(lookupTable: Map<string, string>| null, text:string, outputFile: string){
         let header = JSON.stringify(Array.from(lookupTable!.entries()));
         const headerUint8Array = new TextEncoder().encode(header);
-        
-        const path = process.cwd()+"/data/compressed.txt";
+        const headerLength = headerUint8Array.length*8;
+        const headerbytes = Number(headerLength).toString(2);
+        const path = outputFile;
         const textBits = text.split('').map((char)=>lookupTable?.get(char)).join('');
         const [compressedTextUint8, padding] = this.getUint8TextArray(textBits);
-        fs.writeFileSync(path, headerUint8Array.length.toString() + '\n');
+        fs.writeFileSync(path, headerbytes + '\n');
         fs.appendFileSync(path, padding.toString()+'\n');
         fs.appendFileSync(path, headerUint8Array);
+        fs.appendFileSync(path, '\n');
         fs.appendFileSync(path, compressedTextUint8);
-
-
+        console.log("The file is now compressed");
+        process.exit(0)
     }
 
     private getUint8TextArray(textBits: string): [Uint8Array, number]{
@@ -74,7 +89,7 @@ export class Compressor {
         const padding = bits.length - textBits.length;
         let bitsArray = new Uint8Array(bytes);
 
-        for(let index=0; index<bits.length; index++){
+        for(let index=0; index<bytes; index++){
             const start = index*8;
             const end = start + 8;
             const text = bits.slice(start, end);
