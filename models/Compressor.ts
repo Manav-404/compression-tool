@@ -55,9 +55,14 @@ export class Compressor {
     }
 
     private countCharacters(chunk: string, map: Map<string, number>){
+        let groupCharacters = ''
         for(let i=0; i<chunk.length; i++){
             let character = chunk.charAt(i);
-            map.set(character, (map.get(character) ?? 0)+1)
+            groupCharacters+=character;
+            if(groupCharacters.length===2){
+                map.set(groupCharacters, (map.get(groupCharacters) ?? 0)+1)
+                groupCharacters=""
+            }
         }
     }
 
@@ -67,7 +72,15 @@ export class Compressor {
         const headerLength = headerUint8Array.length*8;
         const headerbytes = Number(headerLength).toString(2);
         const path = outputFile;
-        const textBits = text.split('').map((char)=>lookupTable?.get(char)).join('');
+        let textBits = '';
+        let groupTextBits = '';
+        for(let char of text){
+            groupTextBits+=char;
+            if(groupTextBits.length===2){
+                textBits+=lookupTable?.get(groupTextBits);
+                groupTextBits = '';
+            }
+        }
         const [compressedTextUint8, padding] = this.getUint8TextArray(textBits);
         fs.writeFileSync(path, headerbytes + '\n');
         fs.appendFileSync(path, padding.toString()+'\n');
